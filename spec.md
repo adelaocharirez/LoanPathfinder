@@ -73,6 +73,29 @@ Loan Pathfinder is a web application that tells a person whether they are likely
 - **FR-010:** As a compliance auditor, I want to search the audit log and export results to CSV, so that I can review decisions for fairness and specific reasons.
 - **FR-011:** As an applicant, I want the system to collect only the information needed for scoring and protect it, so that sharing my financial data is safe.
 
+# Nonfunctional Requirements
+
+In priority order:
+
+- **NFR-001 Security and privacy:** All traffic uses HTTPS. Stored applicant data is encrypted. Staff must log in through SSO and can only use their role's features: officers make decisions, and auditors only read and export the log. Applicants can only see results from their own browser session. (FR-011, G4)
+- **NFR-002 Audit integrity:** The database itself prevents audit entries from being changed or deleted. Each audit entry is saved together with the change it records, so a decision can never exist without its audit entry. (FR-006, G4)
+- **NFR-003 Scoring accuracy:** Money and DTI use exact decimal math, never floating point. Re-scoring a saved application with its saved rule set version always gives the same result. Every rule and threshold boundary has an automated test. (FR-002, FR-003, G3)
+- **NFR-004 Performance:** For 95% of submissions, results appear within 3 seconds with up to 50 people submitting at once. Queue and audit searches finish within 2 seconds with up to 100,000 applications. (FR-002, FR-004, FR-010)
+- **NFR-005 Abuse resistance:** One IP address can submit at most 20 times per hour. All input is checked on the server, and all text people type is made safe before it's shown or exported. (FR-001, FR-010, FR-011)
+- **NFR-006 Accessibility:** Applicant pages meet WCAG 2.1 AA, never use color alone to show the result, and work on phones and computers. Reasons are written at a ninth-grade reading level or lower. (FR-002, FR-003, G1)
+- **NFR-007 Reliability:** If an email fails, the officer's decision still stands. The email is retried for up to 24 hours, and each try is logged. The system aims to be up 99.5% of the time each month. (FR-005, FR-009)
+- **NFR-008 Modifiability:** Rule thresholds and the reference rate are stored as versioned data, so a new rule set can be added without code changes. (FR-008, G3)
+- **NFR-009 Data retention:** Old applicant data is deleted within 24 hours after the retention period ends. (FR-011)
+
+# Out of Scope
+
+- Credit bureau lookups. The credit score is self-reported, so no credit inquiry happens.
+- Final underwriting, loan origination, funding, or servicing.
+- Machine learning or other trained scoring models.
+- Integration with a lender's loan origination system (future work).
+- Native mobile apps. The web interface works in mobile browsers instead.
+- Applicant accounts or sign-in.
+
 # Acceptance Criteria
 
 **AC-001: A valid request is accepted (FR-001, FR-002)**
