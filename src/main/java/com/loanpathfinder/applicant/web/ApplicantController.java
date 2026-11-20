@@ -1,6 +1,9 @@
 package com.loanpathfinder.applicant.web;
 
 import com.loanpathfinder.intake.ApplicationForm;
+import com.loanpathfinder.intake.ApplicationNotFoundException;
+import com.loanpathfinder.intake.ApplicationResult;
+import com.loanpathfinder.intake.SubmissionResult;
 import com.loanpathfinder.intake.IntakeService;
 import com.loanpathfinder.security.SessionOwnership;
 import com.loanpathfinder.security.SubmissionRateLimiter;
@@ -9,6 +12,7 @@ import jakarta.servlet.http.HttpSession;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,14 +37,18 @@ public class ApplicantController {
 
     /** POST /api/applications -> SubmissionRateLimiter.checkAndRecord, IntakeService.submit, SessionOwnership.claim (FR-001) */
     @PostMapping
-    public ResponseEntity<Map<String, String>> submit(@RequestBody ApplicationForm form, HttpSession session, HttpServletRequest request) {
-        return notImplemented("POST /api/applications -> SubmissionRateLimiter.checkAndRecord, IntakeService.submit, SessionOwnership.claim (FR-001)");
+    public ResponseEntity<SubmissionResult> submit(@RequestBody ApplicationForm form, HttpSession session, HttpServletRequest request) {
+        rateLimiter.checkAndRecord(request.getRemoteAddr());
+        SubmissionResult result = intakeService.submit(form);
+        sessionOwnership.claim(session.getId(), result.applicationId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 
     /** GET /api/applications/{id}/result -> SessionOwnership.owns, IntakeService.getResult (FR-002) */
     @GetMapping("/{applicationId}/result")
-    public ResponseEntity<Map<String, String>> result(@PathVariable String applicationId, HttpSession session) {
-        return notImplemented("GET /api/applications/{id}/result -> SessionOwnership.owns, IntakeService.getResult (FR-002)");
+    public ResponseEntity<ApplicationResult> result(@PathVariable String applicationId, HttpSession session) {
+        requireOwner(session, applicationId);
+        return ResponseEntity.ok(intakeService.getResult(applicationId));
     }
 
     /** GET /api/applications/{id}/reasons -> SessionOwnership.owns, IntakeService.getResult (FR-003) */
@@ -59,6 +67,19 @@ public class ApplicantController {
     @PostMapping("/{applicationId}/resubmit")
     public ResponseEntity<Map<String, String>> resubmit(@PathVariable String applicationId, @RequestBody ApplicationForm form, HttpSession session, HttpServletRequest request) {
         return notImplemented("POST /api/applications/{id}/resubmit -> SubmissionRateLimiter.checkAndRecord, SessionOwnership.owns, IntakeService.resubmit, SessionOwnership.claim (FR-007)");
+    }
+
+    /** Another session's application is reported as not found, so IDs can't be probed (FR-011). */
+    private void requireOwner(HttpSession session, String applicationId) {
+        if (!sessionOwnership.owns(session.getId(), applicationId)) {
+            throw new ApplicationNotFoundException(applicationId);
+        }
+    }
+
+    @ExceptionHandler(ApplicationNotFoundException.class)
+    public ResponseEntity<Map<String, String>> notFound(ApplicationNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", "not_found", "message", "Result not found"));
     }
 
     private static ResponseEntity<Map<String, String>> notImplemented(String message) {

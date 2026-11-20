@@ -1,18 +1,19 @@
 package com.loanpathfinder.persistence;
 
-import com.loanpathfinder.scoring.RuleSet;
-import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
-/** Module: persistence. Saves and loads data. */
+/** Module: persistence. In-memory, insert-only store for the MVP. */
 @Repository
 public class AuditEntryRepository {
 
+    private final List<AuditEntry> entries = new ArrayList<>();
+
     /** Insert only. There is no update or delete (NFR-002). */
-    public AuditEntry insert(AuditEntry entry) {
-        throw new UnsupportedOperationException("Not implemented: AuditEntryRepository.insert");
+    public synchronized AuditEntry insert(AuditEntry entry) {
+        entries.add(entry);
+        return entry;
     }
 
     public List<AuditEntry> findAll() {

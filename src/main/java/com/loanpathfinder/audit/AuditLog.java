@@ -4,6 +4,7 @@ import com.loanpathfinder.persistence.AuditEntry;
 import com.loanpathfinder.persistence.AuditEntryRepository;
 import java.time.Clock;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.stereotype.Service;
 
 /** Module: audit. Writes, searches, and exports audit entries (FR-006, FR-010, NFR-002). */
@@ -12,6 +13,7 @@ public class AuditLog {
 
     private final AuditEntryRepository repository;
     private final Clock clock;
+    private final AtomicLong sequence = new AtomicLong();
 
     public AuditLog(AuditEntryRepository repository, Clock clock) {
         this.repository = repository;
@@ -20,7 +22,10 @@ public class AuditLog {
 
     /** Appends one entry stamped with clock.instant(). Must run inside the caller's transaction. */
     public AuditEntry append(AuditEvent event) {
-        throw new UnsupportedOperationException("Not implemented: AuditLog.append");
+        AuditEntry entry = new AuditEntry(sequence.incrementAndGet(), clock.instant(), event.actor(),
+                event.applicationId(), event.action(), event.ruleSetVersion(),
+                event.beforeData(), event.afterData(), event.comment());
+        return repository.insert(entry);
     }
 
     /** All entries for one application, oldest first (FR-006). */

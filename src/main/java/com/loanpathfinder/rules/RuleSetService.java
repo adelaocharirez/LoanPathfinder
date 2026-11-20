@@ -22,7 +22,8 @@ public class RuleSetService {
 
     /** The one active version. Version 1 is seeded with the initial thresholds. */
     public RuleSet getActive() {
-        throw new UnsupportedOperationException("Not implemented: RuleSetService.getActive");
+        return repository.findActive()
+                .orElseThrow(() -> new IllegalStateException("No active rule set"));
     }
 
     /** Saves the draft as the next version, makes it active, and writes a rule_set_published audit entry. */
